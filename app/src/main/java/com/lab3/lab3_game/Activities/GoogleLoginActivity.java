@@ -133,7 +133,7 @@ public class GoogleLoginActivity extends AppCompatActivity {
                             });
                             Map<String, Object> values = new HashMap<>();
                             values.put("Gravatar", false);
-                           // String nameUser = Objects.requireNonNull(child.getValue()).toString());
+                            // String nameUser = Objects.requireNonNull(child.getValue()).toString());
                             if (UserName[0] != ""){
                                 values.put("userName", Objects.requireNonNull(UserName[0]));
                             }
