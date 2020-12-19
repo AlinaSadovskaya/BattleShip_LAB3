@@ -4,14 +4,13 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.core.content.ContextCompat;
 
-import com.lab3.lab3_game.Activities.GameActivity;
+import com.lab3.lab3_game.GameLogic.GameActivity;
 import com.lab3.lab3_game.Structures.GameField;
 import com.lab3.lab3_game.Structures.GamePartition;
 import com.lab3.lab3_game.Structures.MoveResult;

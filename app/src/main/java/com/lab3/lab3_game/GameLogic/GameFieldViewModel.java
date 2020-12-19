@@ -1,4 +1,4 @@
-package com.lab3.lab3_game.Activities;
+package com.lab3.lab3_game.GameLogic;
 
 import android.app.Application;
 
@@ -17,22 +17,11 @@ import com.lab3.lab3_game.CreateGameField.CurrentGameFieldMode;
 import com.lab3.lab3_game.CreateGameField.GameFieldView;
 import com.lab3.lab3_game.Structures.GameField;
 import com.lab3.lab3_game.Structures.MoveResult;
-import com.lab3.lab3_game.DataBase.ModelFirebaseDatabase;
-import com.lab3.lab3_game.DataBase.RegistrateUser;
 
 import java.lang.reflect.Type;
 import java.util.Objects;
 
 public class GameFieldViewModel extends AndroidViewModel {
-    private RegistrateUser firebaseAuth;
-    private ModelFirebaseDatabase firebaseDatabase;
-    private DatabaseReference player_1_field_db;
-    private DatabaseReference player_2_field_db;
-    private DatabaseReference player_1;
-    private DatabaseReference player_2;
-    private DatabaseReference player_1_score;
-    private DatabaseReference player_2_score;
-    private DatabaseReference currentMove;
 
     private final MutableLiveData<String> player_1_name = new MutableLiveData<>();
     private final MutableLiveData<String> player_2_name = new MutableLiveData<>();
@@ -45,116 +34,80 @@ public class GameFieldViewModel extends AndroidViewModel {
     private final MutableLiveData<GameFieldView> player_1_field = new MutableLiveData<GameFieldView>();
     private final MutableLiveData<GameFieldView> player_2_field = new MutableLiveData<GameFieldView>();
     private String gameId;
-    private final MutableLiveData<Boolean> gameEnded = new MutableLiveData<Boolean>();;
+    private final MutableLiveData<Boolean> gameEnded = new MutableLiveData<Boolean>();
     private boolean started_game;
     private boolean secondPlayerJoined = false;
+    private GameDB gameDB;
+    private GameController gameController;
 
-    private int score1 = 0;
-    private int score2 = 0;
 
     public GameFieldViewModel(@NonNull Application application) {
         super(application);
-        firebaseAuth = new RegistrateUser();
-        firebaseDatabase = new ModelFirebaseDatabase();
-
     }
 
     public void Inicialize(String _gameId, boolean _started_game)
     {
         this.gameId = _gameId;
         this.started_game  = _started_game;
-        DatabaseReference game = firebaseDatabase.getRef("games").child(_gameId);
-        currentMove = game.child("currentMoveByPlayer");
-        player_1_field_db = game.child("player_1_field");
-        player_2_field_db = game.child("player_2_field");
-        player_1_score = game.child("score_1");
-        player_2_score = game.child("score_2");
-        player_1 = game.child("player_1");
-        player_2 = game.child("player_2");
+        gameController = new GameController(_gameId);
+        gameDB = gameController.getGameDB();
+    }
+
+    public void saveStats()
+    {
+        DatabaseReference stats = gameDB.getStat(this.gameId);
+        stats.child("player_1").setValue(player_1_name.getValue());
+        stats.child("score_1").setValue(gameController.getScore1());
+        stats.child("player_2").setValue(player_2_name.getValue());
+        stats.child("score_2").setValue(gameController.getScore2());
     }
 
     public void RemoveGame()
     {
-        firebaseDatabase.getRef("games").child(this.gameId).removeValue();
+        gameDB.RemoveGame(this.gameId);
     }
 
     public int getScore1()
     {
-        return score1;
+        return gameController.getScore1();
     }
-    public int getwinPoints()
-    {
-        int winPoints = 20;
-        return winPoints;
-    }
+
     public int getScore2()
     {
-        return score2;
+        return gameController.getScore2();
     }
     public void setScore1(int score)
     {
-        this.score1 = score;
+        gameController.setScore1(score);
     }
 
     public void setScore2(int score)
     {
-        this.score2=score;
+        gameController.setScore2(score);
     }
-    public void saveStats()
-    {
-        DatabaseReference stats = firebaseDatabase.getRef("stats").child(this.gameId);
-        stats.child("player_1").setValue(player_1_name.getValue());
-        stats.child("score_1").setValue(score1);
-        stats.child("player_2").setValue(player_2_name.getValue());
-        stats.child("score_2").setValue(score2);
-    }
+
 
     public void addPlayer_2Listener(ValueEventListener player_2_listener){
-        this.player_2.addValueEventListener(player_2_listener);
-    }
-    public void addMoveChangesListener(ValueEventListener moveChangesListener){
-        this.currentMove.addValueEventListener(moveChangesListener);
+        this.gameDB.addPlayer_2Listener(player_2_listener);
     }
 
-    public void removePlayer2Listener(ValueEventListener field_2_listener){
-        this.player_2_field_db.removeEventListener(field_2_listener);
+    public void removePlayer2Listener(ValueEventListener player_2_listener){
+        this.gameDB.removePlayer_2field(player_2_listener);
+    }
+
+    public void addMoveChangesListener(ValueEventListener moveChangesListener){
+        this.gameDB.addMove(moveChangesListener);
     }
 
     public void updatingMove(MoveResult moveResult, boolean started_game)
     {
-        if (moveResult == MoveResult.MISS)
-        {
-            if (started_game)
-                currentMove.setValue("p_2_move");
-            else
-                currentMove.setValue("p_1_move");
-        }
-        else if (moveResult == MoveResult.HIT)
-        {
+        if (moveResult == MoveResult.HIT) {
             game_holder.postValue("You can hit one more time. :p");
-            if (started_game) {
-                score1++;
-                player_1_score.setValue(score1);
-            }
-            else {
-                score2++;
-                player_2_score.setValue(score2);
-            }
         }
-        else return;
         Gson gson = new Gson();
-             String jsonField1 = gson.toJson(player_1_field.getValue().getGameField());
-             String jsonField2 = gson.toJson(player_2_field.getValue().getGameField());
-        if (started_game)
-        {
-            player_1_field_db.setValue(jsonField1);
-            player_2_field_db.setValue(jsonField2);
-         }
-        else {
-            player_1_field_db.setValue(jsonField2);
-            player_2_field_db.setValue(jsonField1);
-        }
-
+        String jsonField1 = gson.toJson(player_1_field.getValue().getGameField());
+        String jsonField2 = gson.toJson(player_2_field.getValue().getGameField());
+        gameController.updatingMove(moveResult, started_game, jsonField1, jsonField2);
     }
 
     public void setMessage(boolean your)
@@ -255,7 +208,7 @@ public class GameFieldViewModel extends AndroidViewModel {
 
             }
         };
-        player_1.addValueEventListener(scoreView_1_listener);
+        gameDB.addPlayer_1Listener(scoreView_1_listener);
 
         ValueEventListener scoreView_2_listener = new ValueEventListener() {
             @Override
@@ -279,7 +232,7 @@ public class GameFieldViewModel extends AndroidViewModel {
 
             }
         };
-        player_2.addValueEventListener(scoreView_2_listener);
+        gameDB.addPlayer_2Listener(scoreView_2_listener);
     }
 
     public void setScore(int user, int Score)
@@ -306,35 +259,14 @@ public class GameFieldViewModel extends AndroidViewModel {
         }
     }
 
-    void trackScore1Update()
-    {
-        ValueEventListener score_1_changedListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (dataSnapshot.getValue(int.class) == null) {
-                    return;
-                }
-                int value = dataSnapshot.getValue(int.class);
-                setScore1(value);
-                if (started_game) {
-                    setScore(1, getScore1());
-                } else {
-                    setScore2(getScore1());
-                }
-                if (value == getwinPoints()) {
-                    if (started_game)
-                        gameEnded.postValue(true);
-                    else
-                        gameEnded.postValue(false);
-                }
+    void trackScore1Update() {
+        gameController.trackScore1Update(started_game);
+        if (!started_game && gameController.getGameEnded() != null)
+            if (gameController.getGameEnded() == true) {
+                gameEnded.postValue(true);
+            } else {
+                gameEnded.postValue(false);
             }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        };
-        player_1_score.addValueEventListener(score_1_changedListener);
     }
 
     public LiveData<Boolean> isGameEnded()
@@ -344,33 +276,13 @@ public class GameFieldViewModel extends AndroidViewModel {
 
     void trackScore2Update()
     {
-        ValueEventListener score_2_changedListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (dataSnapshot.getValue(int.class) == null) {
-                    return;
-                }
-                int value = dataSnapshot.getValue(int.class);
-                setScore2(value);
-                if (started_game) {
-                    setScore(2, getScore2());
-                } else {
-                    setScore(2, getScore1());
-                }
-                if (value == getwinPoints()) {
-                    if (!started_game)
-                        gameEnded.postValue(true);
-                    else
-                        gameEnded.postValue(false);
-                }
+        gameController.trackScore2Update(started_game);
+        if (!started_game && gameController.getGameEnded() != null)
+            if (gameController.getGameEnded() == true) {
+                gameEnded.postValue(true);
+            } else {
+                gameEnded.postValue(false);
             }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        };
-        player_2_score.addValueEventListener(score_2_changedListener);
     }
 
     public void setSecondPlayerJoined(boolean _secondPlayerJoined)
@@ -409,7 +321,7 @@ public class GameFieldViewModel extends AndroidViewModel {
 
             }
         };
-        player_1_field_db.addValueEventListener(field_1_listener);
+        gameDB.addPlayer_1field(field_1_listener);
     }
 
 
@@ -439,9 +351,9 @@ public class GameFieldViewModel extends AndroidViewModel {
 
             }
         };
-        player_2_field_db.addValueEventListener(field_2_listener);
+        gameDB.addPlayer_2field(field_2_listener);
 
-        player_2_field_db.addValueEventListener(new ValueEventListener() {
+        gameDB.addPlayer_2field(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.getValue(String.class) == null)
@@ -453,7 +365,7 @@ public class GameFieldViewModel extends AndroidViewModel {
                 {
                     setSecondPlayerJoined(true);
                     player_2_field.getValue().setFieldMode(CurrentGameFieldMode.PLAYER2);
-                    player_2_field_db.removeEventListener(this);
+                    gameDB.removePlayer_2field(this);
                 }
             }
 

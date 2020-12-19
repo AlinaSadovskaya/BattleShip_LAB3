@@ -21,7 +21,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.lab3.lab3_game.Activities.GameActivity;
+import com.lab3.lab3_game.GameLogic.GameActivity;
 import com.lab3.lab3_game.Structures.GameField;
 import com.lab3.lab3_game.Structures.GameStatus;
 import com.lab3.lab3_game.R;

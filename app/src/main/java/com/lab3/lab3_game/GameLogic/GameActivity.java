@@ -1,4 +1,4 @@
-package com.lab3.lab3_game.Activities;
+package com.lab3.lab3_game.GameLogic;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,8 +29,6 @@ import com.lab3.lab3_game.R;
 import java.util.Objects;
 
 public class GameActivity extends AppCompatActivity {
-
-    private ValueEventListener moveChangesListener;
 
     private boolean started_game;
     private GameFieldViewModel gameFieldViewModel;
@@ -180,37 +178,29 @@ public class GameActivity extends AppCompatActivity {
 
     private void trackCurrentMove()
     {
-        moveChangesListener = new ValueEventListener() {
+        ValueEventListener moveChangesListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (!gameFieldViewModel.getSecondPlayerJoined())
                     return;
-                if (dataSnapshot.getValue(String.class) == null)
-                {
+                if (dataSnapshot.getValue(String.class) == null) {
                     onBackPressed();
                     return;
                 }
                 String value = dataSnapshot.getValue(String.class);
-                if (started_game)
-                {
-                    if (Objects.requireNonNull(value).equals("p_1_move"))
-                    {
+                if (started_game) {
+                    if (Objects.requireNonNull(value).equals("p_1_move")) {
                         currentMoveMessage(true);
                         gameFieldViewModel.setStatusGame(CurrentGameFieldMode.PLAYER2);
-                    }
-                    else {
+                    } else {
                         currentMoveMessage(false);
                         gameFieldViewModel.setStatusGame(CurrentGameFieldMode.READONLY);
                     }
-                }
-                else {
-                    if (Objects.requireNonNull(value).equals("p_2_move"))
-                    {
+                } else {
+                    if (Objects.requireNonNull(value).equals("p_2_move")) {
                         currentMoveMessage(true);
                         gameFieldViewModel.setStatusGame(CurrentGameFieldMode.PLAYER2);
-                    }
-                    else
-                    {
+                    } else {
                         currentMoveMessage(false);
                         gameFieldViewModel.setStatusGame(CurrentGameFieldMode.READONLY);
                     }
